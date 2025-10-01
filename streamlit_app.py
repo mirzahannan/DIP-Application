@@ -26,7 +26,7 @@ if uploaded_file is not None:
     try:
         uploaded_file.seek(0)
         preview_img = Image.open(uploaded_file).convert("RGB")
-        st.image(preview_img, caption="Original", use_container_width=True)
+        st.image(preview_img, caption="Original", use_column_width=True)
     except Exception as e:
         st.warning("Could not preview image; proceeding to detection.")
 
@@ -48,7 +48,7 @@ if uploaded_file is not None:
         # Show detected image by loading bytes
         with open(out_path, "rb") as f:
             detected_bytes = f.read()
-        st.image(detected_bytes, caption="Detected", use_container_width=True)
+        st.image(detected_bytes, caption="Detected", use_column_width=True)
 
         unique_labels: List[str] = sorted(set(labels))
         if unique_labels:
