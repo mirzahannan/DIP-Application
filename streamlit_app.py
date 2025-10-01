@@ -5,6 +5,7 @@ import tempfile
 from typing import List
 
 import streamlit as st
+from PIL import Image
 
 from detect_torchvision import run_torchvision_detection, ensure_dir_exists
 
@@ -22,12 +23,17 @@ conf_threshold = st.slider("Confidence Threshold", 0.05, 0.95, 0.25, 0.05)
 uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Preview from memory to avoid temp-file issues on some platforms
-    st.image(uploaded_file, caption="Original", use_container_width=True)
+    # Preview using PIL Image to avoid file-like edge cases
+    try:
+        preview_img = Image.open(uploaded_file).convert("RGB")
+        st.image(preview_img, caption="Original", use_container_width=True)
+    except Exception:
+        st.warning("Could not preview image, but detection can still run.")
 
     if st.button("Run Detection"):
         with st.spinner("Running detection..."):
             # Write a temporary file only for the detection call
+            uploaded_file.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{uploaded_file.name}") as tmp:
                 tmp.write(uploaded_file.getbuffer())
                 tmp_path = tmp.name
