@@ -18,7 +18,9 @@ ensure_dir_exists(RESULTS_DIR)
 st.title("Object Detection (TorchVision)")
 st.write("Upload an image. The app will detect objects and list their names.")
 
-conf_threshold = st.slider("Confidence Threshold", 0.05, 0.95, 0.25, 0.05)
+conf_threshold = st.slider("Confidence Threshold", 0.05, 0.95, 0.6, 0.05)
+min_area_ratio = st.slider("Min Box Area (% of image)", 0.0, 5.0, 1.0, 0.1) / 100.0
+max_detections = st.slider("Max Detections", 1, 50, 12, 1)
 
 uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
 
@@ -41,11 +43,12 @@ if uploaded_file is not None:
                 image_path=tmp_path,
                 output_dir=RESULTS_DIR,
                 confidence_threshold=float(conf_threshold),
+                min_area_ratio=float(min_area_ratio),
+                max_detections=int(max_detections),
             )
 
         st.success("Done!")
 
-        # Show detected image by loading bytes
         with open(out_path, "rb") as f:
             detected_bytes = f.read()
         st.image(detected_bytes, caption="Detected", use_column_width=True)

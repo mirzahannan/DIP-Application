@@ -61,7 +61,14 @@ def run_torchvision_detection(
     image_path: str,
     output_dir: str,
     confidence_threshold: float = 0.25,
+    min_area_ratio: float = 0.01,
+    max_detections: int = 10,
 ) -> Tuple[str, List[str]]:
+    """Run detection and save an annotated image.
+
+    min_area_ratio is the minimum box area as a fraction of the image area (e.g., 0.01 = 1%).
+    max_detections limits the number of highest-scoring boxes to keep.
+    """
     ensure_dir_exists(output_dir)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -69,6 +76,9 @@ def run_torchvision_detection(
     model.eval()
 
     image = Image.open(image_path).convert("RGB")
+    width, height = image.size
+    min_area = max(1.0, float(width * height) * float(min_area_ratio))
+
     tensor = to_tensor(image).to(device)
 
     with torch.no_grad():
@@ -78,9 +88,26 @@ def run_torchvision_detection(
     labels = output["labels"].cpu()
     scores = output["scores"].cpu()
 
+    # Filter by confidence and area
+    keep_idxs: List[int] = []
+    for idx, (box, score) in enumerate(zip(boxes, scores)):
+        if float(score) < confidence_threshold:
+            continue
+        x1, y1, x2, y2 = [float(v) for v in box.tolist()]
+        area = max(0.0, (x2 - x1) * (y2 - y1))
+        if area >= min_area:
+            keep_idxs.append(idx)
+
+    # Keep top-k by score
+    keep_idxs = sorted(keep_idxs, key=lambda i: float(scores[i]), reverse=True)[:max_detections]
+
+    boxes = boxes[keep_idxs]
+    labels = labels[keep_idxs]
+    scores = scores[keep_idxs]
+
     annotated = _draw_annotations(image, boxes, labels, scores, confidence_threshold)
 
-    # Detected label names above threshold
+    # Detected label names
     detected_names: List[str] = []
     for label_idx, score in zip(labels.tolist(), scores.tolist()):
         if float(score) >= confidence_threshold:
