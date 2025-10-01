@@ -22,14 +22,16 @@ conf_threshold = st.slider("Confidence Threshold", 0.05, 0.95, 0.25, 0.05)
 uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{uploaded_file.name}") as tmp:
-        tmp.write(uploaded_file.read())
-        tmp_path = tmp.name
-
-    st.image(tmp_path, caption="Original", use_container_width=True)
+    # Preview from memory to avoid temp-file issues on some platforms
+    st.image(uploaded_file, caption="Original", use_container_width=True)
 
     if st.button("Run Detection"):
         with st.spinner("Running detection..."):
+            # Write a temporary file only for the detection call
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{uploaded_file.name}") as tmp:
+                tmp.write(uploaded_file.getbuffer())
+                tmp_path = tmp.name
+
             out_path, labels = run_torchvision_detection(
                 image_path=tmp_path,
                 output_dir=RESULTS_DIR,
